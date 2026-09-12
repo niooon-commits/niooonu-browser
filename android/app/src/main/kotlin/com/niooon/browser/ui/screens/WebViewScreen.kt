@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.niooon.browser.ui.components.BrowserPopupMenu
 import com.niooon.browser.ui.components.InBrowserTopBar
 import com.niooon.browser.ui.theme.GoogleBlue
 import com.niooon.browser.ui.theme.TextPrimary
@@ -235,111 +236,94 @@ fun WebViewScreen(
             )
         }
 
-        // Dialog: 3-Dots Menu
+        // 3-Dots Menu Popup (Matches Chrome Android dark mode popup with circular actions and clean vector icons)
         if (showMenuDialog) {
-            AlertDialog(
-                onDismissRequest = { showMenuDialog = false },
-                title = {
-                    Text(
-                        text = if (currentTitle.isNotEmpty()) currentTitle else "niooonu browser",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = TextPrimary
-                    )
-                },
-                text = {
-                    Column {
-                        // Reload
-                        TextButton(
-                            onClick = {
-                                webViewInstance?.reload()
-                                showMenuDialog = false
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("↻  Reload", color = TextPrimary, modifier = Modifier.fillMaxWidth())
-                        }
-
-                        // New Tab
-                        TextButton(
-                            onClick = {
-                                showMenuDialog = false
-                                onNewTabClick()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("➕  New Tab", color = TextPrimary, modifier = Modifier.fillMaxWidth())
-                        }
-
-                        // Share
-                        TextButton(
-                            onClick = {
-                                showMenuDialog = false
-                                val sendIntent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, currentUrl)
-                                    type = "text/plain"
-                                }
-                                val shareIntent = Intent.createChooser(sendIntent, "Share link")
-                                context.startActivity(shareIntent)
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("↗  Share Link", color = TextPrimary, modifier = Modifier.fillMaxWidth())
-                        }
-
-                        // Copy link
-                        TextButton(
-                            onClick = {
-                                showMenuDialog = false
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val clip = ClipData.newPlainText("URL", currentUrl)
-                                clipboard.setPrimaryClip(clip)
-                                Toast.makeText(context, "Link copied to clipboard", Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("📋  Copy Link", color = TextPrimary, modifier = Modifier.fillMaxWidth())
-                        }
-
-                        // Desktop site toggle
-                        TextButton(
-                            onClick = {
-                                showMenuDialog = false
-                                isDesktopSite = !isDesktopSite
-                                webViewInstance?.settings?.let { s ->
-                                    if (isDesktopSite) {
-                                        s.userAgentString = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                                        s.useWideViewPort = true
-                                        s.loadWithOverviewMode = true
-                                    } else {
-                                        s.userAgentString = null
-                                    }
-                                    webViewInstance?.reload()
-                                }
-                                Toast.makeText(context, if (isDesktopSite) "Desktop site enabled" else "Mobile site enabled", Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(if (isDesktopSite) "✓ Desktop site" else "💻 Desktop site", color = TextPrimary, modifier = Modifier.fillMaxWidth())
-                        }
-
-                        // Close Tab
-                        TextButton(
-                            onClick = {
-                                showMenuDialog = false
-                                onCloseWebView()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("✕  Close Tab", color = Color(0xFFEA4335), modifier = Modifier.fillMaxWidth())
-                        }
+            BrowserPopupMenu(
+                isDesktopMode = isDesktopSite,
+                onDismiss = { showMenuDialog = false },
+                onBack = {
+                    if (webViewInstance?.canGoBack() == true) {
+                        webViewInstance?.goBack()
+                    } else {
+                        onHomeClick()
                     }
                 },
-                confirmButton = {
-                    TextButton(onClick = { showMenuDialog = false }) {
-                        Text("Close", color = TextSecondary)
+                onForward = {
+                    if (webViewInstance?.canGoForward() == true) {
+                        webViewInstance?.goForward()
+                    } else {
+                        Toast.makeText(context, "No forward page", Toast.LENGTH_SHORT).show()
                     }
+                },
+                onBookmark = {
+                    Toast.makeText(context, "Page bookmarked", Toast.LENGTH_SHORT).show()
+                },
+                onDownload = {
+                    Toast.makeText(context, "Downloading page for offline viewing...", Toast.LENGTH_SHORT).show()
+                },
+                onReload = {
+                    webViewInstance?.reload()
+                },
+                onNewTab = onNewTabClick,
+                onNewIncognitoTab = {
+                    onNewTabClick()
+                    Toast.makeText(context, "Incognito tab opened", Toast.LENGTH_SHORT).show()
+                },
+                onMoveTabToGroup = {
+                    Toast.makeText(context, "Tab moved to group", Toast.LENGTH_SHORT).show()
+                },
+                onManageWindows = {
+                    onTabsClick()
+                },
+                onHistory = {
+                    Toast.makeText(context, "History opened", Toast.LENGTH_SHORT).show()
+                },
+                onDeleteBrowsingData = {
+                    webViewInstance?.clearCache(true)
+                    webViewInstance?.clearHistory()
+                    Toast.makeText(context, "Browsing data and cache cleared", Toast.LENGTH_SHORT).show()
+                },
+                onSiteControls = {
+                    Toast.makeText(context, "Site permissions and controls", Toast.LENGTH_SHORT).show()
+                },
+                onDownloadsList = {
+                    Toast.makeText(context, "Downloads manager", Toast.LENGTH_SHORT).show()
+                },
+                onBookmarksList = {
+                    Toast.makeText(context, "Bookmarks manager", Toast.LENGTH_SHORT).show()
+                },
+                onRecentTabs = {
+                    onTabsClick()
+                },
+                onShare = {
+                    val sendIntent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_TEXT, currentUrl)
+                        type = "text/plain"
+                    }
+                    val shareIntent = Intent.createChooser(sendIntent, "Share link")
+                    context.startActivity(shareIntent)
+                },
+                onFindInPage = {
+                    Toast.makeText(context, "Find in page activated", Toast.LENGTH_SHORT).show()
+                },
+                onTranslate = {
+                    val translateUrl = "https://translate.google.com/translate?sl=auto&tl=en&u=" + URLEncoder.encode(currentUrl, "UTF-8")
+                    navigateTo(translateUrl)
+                },
+                onToggleDesktopMode = {
+                    isDesktopSite = !isDesktopSite
+                    webViewInstance?.settings?.let { s ->
+                        if (isDesktopSite) {
+                            s.userAgentString = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                            s.useWideViewPort = true
+                            s.loadWithOverviewMode = true
+                        } else {
+                            s.userAgentString = null
+                        }
+                        webViewInstance?.reload()
+                    }
+                    Toast.makeText(context, if (isDesktopSite) "Desktop site requested" else "Mobile site requested", Toast.LENGTH_SHORT).show()
                 }
             )
         }

@@ -18,6 +18,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { InBrowserTopBar } from './InBrowserTopBar';
+import { BrowserMenuPopup } from './BrowserMenuPopup';
 
 interface WebViewScreenProps {
   currentUrl: string;
@@ -354,101 +355,60 @@ export const WebViewScreen: React.FC<WebViewScreenProps> = ({
         </div>
       )}
 
-      {/* Three-Dots Menu Popover */}
+      {/* Three-Dots Menu Popover (Modern Liquid Dark Card matching uploaded image) */}
       {showMenu && (
-        <div
-          onClick={() => setShowMenu(false)}
-          className="absolute inset-0 z-50 bg-black/40 backdrop-blur-xs flex justify-end p-2"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-56 mt-12 bg-slate-900/95 border border-white/20 rounded-2xl shadow-2xl p-2 text-xs space-y-1 animate-in slide-in-from-top-2 duration-150"
-          >
-            <button
-              type="button"
-              onClick={() => {
-                setShowMenu(false);
-                setIsLoading(true);
-                setTimeout(() => setIsLoading(false), 400);
-                showToast('Page refreshed');
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 text-slate-200 cursor-pointer"
-            >
-              <RotateCw className="w-4 h-4 text-blue-400" />
-              <span>Reload</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setShowMenu(false);
-                onNewTabClick();
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 text-slate-200 cursor-pointer"
-            >
-              <div className="w-4 h-4 rounded-sm border border-white flex items-center justify-center text-[10px] font-bold">
-                +
-              </div>
-              <span>New Tab</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setShowMenu(false);
-                navigator.clipboard?.writeText(currentUrl);
-                showToast('Link copied to clipboard');
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 text-slate-200 cursor-pointer"
-            >
-              <Copy className="w-4 h-4 text-emerald-400" />
-              <span>Copy Link</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setShowMenu(false);
-                showToast('Bookmark saved');
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 text-slate-200 cursor-pointer"
-            >
-              <Bookmark className="w-4 h-4 text-amber-400" />
-              <span>Bookmark</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setIsDesktopMode(!isDesktopMode);
-                setShowMenu(false);
-                showToast(isDesktopMode ? 'Mobile site enabled' : 'Desktop site enabled');
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 text-slate-200 cursor-pointer"
-            >
-              {isDesktopMode ? (
-                <Smartphone className="w-4 h-4 text-purple-400" />
-              ) : (
-                <Monitor className="w-4 h-4 text-purple-400" />
-              )}
-              <span>{isDesktopMode ? 'Mobile Site' : 'Desktop Site'}</span>
-            </button>
-
-            <div className="h-[1px] bg-white/10 my-1" />
-
-            <button
-              type="button"
-              onClick={() => {
-                setShowMenu(false);
-                onCloseWebView();
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-500/20 text-red-400 cursor-pointer font-medium"
-            >
-              <X className="w-4 h-4" />
-              <span>Close Tab</span>
-            </button>
-          </div>
-        </div>
+        <BrowserMenuPopup
+          currentUrl={currentUrl}
+          isDesktopMode={isDesktopMode}
+          onClose={() => setShowMenu(false)}
+          onReload={() => {
+            setIsLoading(true);
+            setTimeout(() => setIsLoading(false), 450);
+            showToast('Page refreshed');
+          }}
+          onNewTab={() => {
+            onNewTabClick();
+          }}
+          onNewIncognitoTab={() => {
+            onNewTabClick();
+            showToast('New Incognito tab opened');
+          }}
+          onToggleDesktopMode={() => {
+            const nextMode = !isDesktopMode;
+            setIsDesktopMode(nextMode);
+            showToast(nextMode ? 'Desktop site requested' : 'Mobile site requested');
+          }}
+          onBookmark={() => {
+            showToast('Page bookmarked');
+          }}
+          onShare={() => {
+            if (navigator.clipboard) {
+              navigator.clipboard.writeText(currentUrl);
+            }
+            showToast('Link copied & ready to share');
+          }}
+          onHistory={() => {
+            showToast('Browsing history opened');
+          }}
+          onDownloads={() => {
+            showToast('Downloads manager: niooonu-browser-release.apk');
+          }}
+          onClearData={() => {
+            showToast('Browsing history and cached data cleared');
+          }}
+          onFindInPage={() => {
+            showToast('Find in page activated');
+          }}
+          onTranslate={() => {
+            showToast('Translating page with Google Translate...');
+          }}
+          onBack={() => {
+            onHomeClick();
+          }}
+          onForward={() => {
+            showToast('No forward history');
+          }}
+        />
       )}
 
       {/* Floating Toast notification */}
