@@ -1,0 +1,27 @@
+node_modules/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Gradle & Android build outputs
+.gradle/
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/.cxx/
+
+# Explicitly ensure signing keys and wrapper are kept
+!android/my-upload-key.jks
+!android/debug.keystore
+!android/keystore.properties
+!android/gradle/wrapper/gradle-wrapper.jar
+
+# Local skills and agent system docs containing secrets
+AGENTS.md
+skills/
+
+
