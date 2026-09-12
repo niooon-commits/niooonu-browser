@@ -11,7 +11,8 @@
     "clean": "rm -rf dist server.js",
     "lint": "code-review-graph update && tsc --noEmit",
     "sync": "bash scripts/sync-push-build.sh",
-    "workflow": "bash scripts/check-workflow.sh"
+    "workflow": "bash scripts/check-workflow.sh",
+    "wait-workflow": "bash scripts/wait-workflow.sh"
   },
   "dependencies": {
     "@expo/material-symbols": "^0.1.1",
