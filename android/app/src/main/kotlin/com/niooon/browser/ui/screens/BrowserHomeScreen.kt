@@ -55,6 +55,8 @@ import com.niooon.browser.ui.theme.TextSecondary
 @Composable
 fun BrowserHomeScreen(
     onNavigateToUrl: (String) -> Unit,
+    tabCount: Int = 1,
+    onTabsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -147,20 +149,17 @@ fun BrowserHomeScreen(
             Spacer(modifier = Modifier.height(110.dp))
         }
 
-        // 3. Floating Frosted Glass Bottom Dock (Fixed at bottom)
+        // 3. Floating Frosted Glass Bottom Dock (Fixed at bottom on Home Screen only)
         FloatingGlassDock(
-            currentTabCount = 1,
+            currentTabCount = tabCount,
             canGoBack = false,
             canGoForward = false,
             onBackClick = { },
             onForwardClick = { },
             onSearchClick = {
-                // Focus search bar
                 Toast.makeText(context, "Search activated", Toast.LENGTH_SHORT).show()
             },
-            onTabsClick = {
-                Toast.makeText(context, "Tabs manager: 1 Active Tab", Toast.LENGTH_SHORT).show()
-            },
+            onTabsClick = onTabsClick,
             onMenuClick = { showMenuDialog = true },
             modifier = Modifier.align(Alignment.BottomCenter)
         )

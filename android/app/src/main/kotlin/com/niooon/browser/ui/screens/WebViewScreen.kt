@@ -1,68 +1,139 @@
 package com.niooon.browser.ui.screens
 
 import android.annotation.SuppressLint
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.niooon.browser.ui.components.FloatingGlassDock
+import com.niooon.browser.ui.components.InBrowserTopBar
 import com.niooon.browser.ui.theme.GoogleBlue
+import com.niooon.browser.ui.theme.TextPrimary
+import com.niooon.browser.ui.theme.TextSecondary
+import java.net.URLEncoder
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun WebViewScreen(
     initialUrl: String,
+    tabCount: Int = 1,
+    onHomeClick: () -> Unit,
+    onNewTabClick: () -> Unit,
+    onTabsClick: () -> Unit,
     onCloseWebView: () -> Unit,
-    onSearchClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
-    var canGoBack by remember { mutableStateOf(false) }
-    var canGoForward by remember { mutableStateOf(false) }
+    var currentUrl by remember { mutableStateOf(initialUrl) }
+    var currentTitle by remember { mutableStateOf("") }
     var loadProgress by remember { mutableFloatStateOf(0f) }
     var isLoading by remember { mutableStateOf(true) }
+    var isDesktopSite by remember { mutableStateOf(false) }
+
+    // Dialog states
+    var showUrlEditDialog by remember { mutableStateOf(false) }
+    var editableUrlText by remember { mutableStateOf(initialUrl) }
+    var showMenuDialog by remember { mutableStateOf(false) }
+
+    // Update URL if initialUrl changes from external navigation
+    LaunchedEffect(initialUrl) {
+        if (initialUrl != currentUrl) {
+            currentUrl = initialUrl
+            webViewInstance?.loadUrl(initialUrl)
+        }
+    }
 
     BackHandler(enabled = true) {
         if (webViewInstance?.canGoBack() == true) {
             webViewInstance?.goBack()
         } else {
-            onCloseWebView()
+            onHomeClick()
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    fun navigateTo(raw: String) {
+        val trimmed = raw.trim()
+        if (trimmed.isEmpty()) return
+        val target = if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            trimmed
+        } else if (trimmed.contains(".") && !trimmed.contains(" ")) {
+            "https://$trimmed"
+        } else {
+            "https://www.google.com/search?q=" + URLEncoder.encode(trimmed, "UTF-8")
+        }
+        currentUrl = target
+        webViewInstance?.loadUrl(target)
+    }
+
+    Box(modifier = modifier.fillMaxSize().background(Color(0xFF0F172A))) {
         Column(modifier = Modifier.fillMaxSize()) {
+            // 1. In-Browser Top Bar (Home, Pill URL, New Tab +, Tabs Badge [N], 3-Dots Menu)
+            InBrowserTopBar(
+                currentUrl = currentUrl,
+                tabCount = tabCount,
+                onHomeClick = onHomeClick,
+                onUrlClick = {
+                    editableUrlText = currentUrl
+                    showUrlEditDialog = true
+                },
+                onNewTabClick = onNewTabClick,
+                onTabsClick = onTabsClick,
+                onMenuClick = { showMenuDialog = true }
+            )
+
+            // 2. Loading progress bar
             if (isLoading && loadProgress < 1f) {
                 LinearProgressIndicator(
                     progress = { loadProgress },
                     color = GoogleBlue,
-                    trackColor = Color(0x334285F4),
+                    trackColor = Color(0x224285F4),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(3.dp)
+                        .height(2.5.dp)
                 )
+            } else {
+                Spacer(modifier = Modifier.height(0.dp))
             }
 
+            // 3. Web content takes 100% of remaining screen (NO BOTTOM NAVIGATION BAR!)
             AndroidView(
                 modifier = Modifier
                     .weight(1f)
@@ -87,13 +158,14 @@ fun WebViewScreen(
                             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                                 super.onPageStarted(view, url, favicon)
                                 isLoading = true
+                                url?.let { currentUrl = it }
                             }
 
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 super.onPageFinished(view, url)
                                 isLoading = false
-                                canGoBack = view?.canGoBack() ?: false
-                                canGoForward = view?.canGoForward() ?: false
+                                url?.let { currentUrl = it }
+                                view?.title?.let { currentTitle = it }
                             }
                         }
 
@@ -104,9 +176,14 @@ fun WebViewScreen(
                                     isLoading = false
                                 }
                             }
+
+                            override fun onReceivedTitle(view: WebView?, title: String?) {
+                                super.onReceivedTitle(view, title)
+                                title?.let { currentTitle = it }
+                            }
                         }
 
-                        loadUrl(initialUrl)
+                        loadUrl(currentUrl)
                         webViewInstance = this
                     }
                 },
@@ -114,32 +191,157 @@ fun WebViewScreen(
                     webViewInstance = webView
                 }
             )
-
-            // Space for the bottom dock
-            Box(modifier = Modifier.height(84.dp).background(Color(0xFFE3F2FD)))
         }
 
-        // Floating Glass Dock at Bottom
-        FloatingGlassDock(
-            currentTabCount = 1,
-            canGoBack = canGoBack,
-            canGoForward = canGoForward,
-            onBackClick = {
-                if (webViewInstance?.canGoBack() == true) {
-                    webViewInstance?.goBack()
-                } else {
-                    onCloseWebView()
+        // Dialog: Edit URL / New Search
+        if (showUrlEditDialog) {
+            AlertDialog(
+                onDismissRequest = { showUrlEditDialog = false },
+                title = {
+                    Text("Search or Enter URL", fontWeight = FontWeight.Bold, color = TextPrimary)
+                },
+                text = {
+                    Column {
+                        OutlinedTextField(
+                            value = editableUrlText,
+                            onValueChange = { editableUrlText = it },
+                            placeholder = { Text("https://example.com or query") },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = GoogleBlue,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showUrlEditDialog = false
+                            navigateTo(editableUrlText)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = GoogleBlue)
+                    ) {
+                        Text("Go")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showUrlEditDialog = false }) {
+                        Text("Cancel", color = TextSecondary)
+                    }
                 }
-            },
-            onForwardClick = {
-                if (webViewInstance?.canGoForward() == true) {
-                    webViewInstance?.goForward()
+            )
+        }
+
+        // Dialog: 3-Dots Menu
+        if (showMenuDialog) {
+            AlertDialog(
+                onDismissRequest = { showMenuDialog = false },
+                title = {
+                    Text(
+                        text = if (currentTitle.isNotEmpty()) currentTitle else "niooonu browser",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = TextPrimary
+                    )
+                },
+                text = {
+                    Column {
+                        // Reload
+                        TextButton(
+                            onClick = {
+                                webViewInstance?.reload()
+                                showMenuDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("↻  Reload", color = TextPrimary, modifier = Modifier.fillMaxWidth())
+                        }
+
+                        // New Tab
+                        TextButton(
+                            onClick = {
+                                showMenuDialog = false
+                                onNewTabClick()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("➕  New Tab", color = TextPrimary, modifier = Modifier.fillMaxWidth())
+                        }
+
+                        // Share
+                        TextButton(
+                            onClick = {
+                                showMenuDialog = false
+                                val sendIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, currentUrl)
+                                    type = "text/plain"
+                                }
+                                val shareIntent = Intent.createChooser(sendIntent, "Share link")
+                                context.startActivity(shareIntent)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("↗  Share Link", color = TextPrimary, modifier = Modifier.fillMaxWidth())
+                        }
+
+                        // Copy link
+                        TextButton(
+                            onClick = {
+                                showMenuDialog = false
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("URL", currentUrl)
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, "Link copied to clipboard", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("📋  Copy Link", color = TextPrimary, modifier = Modifier.fillMaxWidth())
+                        }
+
+                        // Desktop site toggle
+                        TextButton(
+                            onClick = {
+                                showMenuDialog = false
+                                isDesktopSite = !isDesktopSite
+                                webViewInstance?.settings?.let { s ->
+                                    if (isDesktopSite) {
+                                        s.userAgentString = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                                        s.useWideViewPort = true
+                                        s.loadWithOverviewMode = true
+                                    } else {
+                                        s.userAgentString = null
+                                    }
+                                    webViewInstance?.reload()
+                                }
+                                Toast.makeText(context, if (isDesktopSite) "Desktop site enabled" else "Mobile site enabled", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(if (isDesktopSite) "✓ Desktop site" else "💻 Desktop site", color = TextPrimary, modifier = Modifier.fillMaxWidth())
+                        }
+
+                        // Close Tab
+                        TextButton(
+                            onClick = {
+                                showMenuDialog = false
+                                onCloseWebView()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("✕  Close Tab", color = Color(0xFFEA4335), modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showMenuDialog = false }) {
+                        Text("Close", color = TextSecondary)
+                    }
                 }
-            },
-            onSearchClick = onSearchClick,
-            onTabsClick = onCloseWebView,
-            onMenuClick = { webViewInstance?.reload() },
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+            )
+        }
     }
 }
