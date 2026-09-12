@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.niooon.browser.download.NiooonuDownloadManager
 import com.niooon.browser.model.DomainBlockManager
 import com.niooon.browser.ui.components.BrowserPopupMenu
 import com.niooon.browser.ui.components.InBrowserTopBar
@@ -182,6 +183,18 @@ fun WebViewScreen(
                                     ).show()
                                     return true
                                 }
+
+                                val lower = reqUrl.lowercase()
+                                val isDirectDownload = lower.endsWith(".apk") || lower.endsWith(".zip") ||
+                                    lower.endsWith(".rar") || lower.endsWith(".7z") ||
+                                    lower.endsWith(".pdf") || lower.endsWith(".mp4") ||
+                                    lower.endsWith(".mp3") || lower.endsWith(".iso") ||
+                                    lower.endsWith(".tar.gz") || lower.endsWith(".exe") ||
+                                    lower.endsWith(".dmg")
+                                if (isDirectDownload) {
+                                    NiooonuDownloadManager.startDownload(context = context, url = reqUrl)
+                                    return true
+                                }
                                 return false
                             }
 
@@ -252,6 +265,18 @@ fun WebViewScreen(
                                 // Block annoying ad popups and new blank windows
                                 return false
                             }
+                        }
+
+                        // Set Download Listener for any downloadable link or file
+                        setDownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
+                            NiooonuDownloadManager.startDownload(
+                                context = context,
+                                url = url,
+                                userAgent = userAgent,
+                                contentDisposition = contentDisposition,
+                                mimetype = mimetype,
+                                contentLength = contentLength
+                            )
                         }
 
                         loadUrl(currentUrl)
@@ -329,7 +354,11 @@ fun WebViewScreen(
                     Toast.makeText(context, "Page bookmarked", Toast.LENGTH_SHORT).show()
                 },
                 onDownload = {
-                    Toast.makeText(context, "Downloading page for offline viewing...", Toast.LENGTH_SHORT).show()
+                    NiooonuDownloadManager.startDownload(
+                        context = context,
+                        url = currentUrl,
+                        mimetype = "text/html"
+                    )
                 },
                 onReload = {
                     webViewInstance?.reload()

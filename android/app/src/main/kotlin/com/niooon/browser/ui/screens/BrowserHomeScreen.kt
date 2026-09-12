@@ -107,10 +107,13 @@ fun BrowserHomeScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Status Bar (9:41 + Battery + Profile)
+            // Clean Top Bar (Profile + Downloads)
             TopStatusBar(
                 onProfileClick = {
                     Toast.makeText(context, "Logged into Google Account", Toast.LENGTH_SHORT).show()
+                },
+                onDownloadsClick = {
+                    showDownloadsScreen = true
                 }
             )
 

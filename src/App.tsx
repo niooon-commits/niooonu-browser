@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Smartphone,
   Maximize2,
   Download,
   Github,
   CheckCircle2,
+  X,
+  ArrowDownCircle,
 } from 'lucide-react';
-import { BrowserTab } from './types';
+import { BrowserTab, DownloadItem } from './types';
 import { BrowserHomeScreen } from './components/BrowserHomeScreen';
 import { WebViewScreen } from './components/WebViewScreen';
 import { TabSwitcherModal } from './components/TabSwitcherModal';
+import { DownloadsScreen } from './components/DownloadsScreen';
 
 export default function App() {
   // Tabs management
@@ -34,7 +37,82 @@ export default function App() {
   const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
   const [isShowingHomeScreen, setIsShowingHomeScreen] = useState<boolean>(false);
   const [showTabSwitcher, setShowTabSwitcher] = useState<boolean>(false);
+  const [showDownloadsScreen, setShowDownloadsScreen] = useState<boolean>(false);
   const [isPhoneFrame, setIsPhoneFrame] = useState<boolean>(true);
+
+  // Real-time downloads list
+  const [downloads, setDownloads] = useState<DownloadItem[]>([
+    {
+      id: 'dl-1',
+      name: 'niooonu-browser-release.apk',
+      sizeText: '18.4 MB',
+      dateText: 'Sep 12, 2026',
+      url: 'https://github.com/niooon-commits/niooonu-browser/releases',
+      category: 'apk',
+      status: 'completed',
+    },
+  ]);
+
+  // Real-time download progress updater
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDownloads((prev) =>
+        prev.map((item) => {
+          if (item.status === 'downloading' && (item.progress ?? 0) < 100) {
+            const nextProgress = Math.min(100, (item.progress ?? 0) + 15);
+            return {
+              ...item,
+              progress: nextProgress,
+              status: nextProgress >= 100 ? 'completed' : 'downloading',
+              speedText: '4.8 MB/s',
+            };
+          }
+          return item;
+        })
+      );
+    }, 600);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleStartDownload = (url: string, filename?: string) => {
+    const name = filename || url.split('/').pop()?.split('?')[0] || `download-${Date.now()}`;
+    const ext = name.split('.').pop()?.toLowerCase() || '';
+    const category: DownloadItem['category'] =
+      ext === 'apk'
+        ? 'apk'
+        : ['jpg', 'png', 'webp', 'gif'].includes(ext)
+        ? 'image'
+        : ['mp4', 'mkv', 'webm'].includes(ext)
+        ? 'video'
+        : ['pdf', 'txt', 'zip'].includes(ext)
+        ? 'doc'
+        : 'other';
+
+    const newTask: DownloadItem = {
+      id: `dl-${Date.now()}`,
+      name,
+      sizeText: '24.2 MB',
+      dateText: 'Today',
+      url,
+      category,
+      progress: 5,
+      status: 'downloading',
+      speedText: '3.6 MB/s',
+    };
+
+    setDownloads((prev) => [newTask, ...prev]);
+  };
+
+  const handleCancelDownload = (id: string) => {
+    setDownloads((prev) => prev.filter((d) => d.id !== id));
+  };
+
+  const handleDeleteDownload = (id: string) => {
+    setDownloads((prev) => prev.filter((d) => d.id !== id));
+  };
+
+  const activeDownloadingTask = downloads.find((d) => d.status === 'downloading');
 
   // Active tab reference
   const currentTab = tabs[activeTabIndex] || tabs[0];
@@ -179,12 +257,40 @@ export default function App() {
           id="browser-viewport"
           className="relative w-full h-full rounded-[38px] overflow-hidden bg-black flex flex-col"
         >
+          {/* Real-time Android System Download Notification Shade Banner */}
+          {activeDownloadingTask && (
+            <div
+              onClick={() => setShowDownloadsScreen(true)}
+              className="absolute top-8 left-3 right-3 z-50 p-2.5 rounded-2xl bg-slate-900/95 border border-blue-500/50 shadow-2xl backdrop-blur-md cursor-pointer animate-in slide-in-from-top-4 duration-200"
+            >
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <ArrowDownCircle className="w-4 h-4 text-blue-400 animate-pulse shrink-0" />
+                  <span className="font-semibold text-white truncate max-w-[180px]">
+                    {activeDownloadingTask.name}
+                  </span>
+                </div>
+                <span className="text-[11px] font-medium text-blue-300">
+                  {activeDownloadingTask.progress}%
+                </span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 via-sky-400 to-blue-600 transition-all duration-300 rounded-full"
+                  style={{ width: `${activeDownloadingTask.progress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {isShowingHomeScreen || !currentTab.url ? (
             /* Home Screen with Omnibox and Bottom Floating Dock */
             <BrowserHomeScreen
               tabCount={tabs.length}
               onNavigateToUrl={handleNavigateToUrl}
               onTabsClick={() => setShowTabSwitcher(true)}
+              onDownloadsClick={() => setShowDownloadsScreen(true)}
+              activeDownloadsCount={downloads.filter((d) => d.status === 'downloading').length}
             />
           ) : (
             /* In-Browser View with Top Bar and Full-Page Content (NO BOTTOM DOCK!) */
@@ -196,6 +302,8 @@ export default function App() {
               onTabsClick={() => setShowTabSwitcher(true)}
               onNavigateToUrl={handleNavigateToUrl}
               onCloseWebView={() => handleCloseTab(currentTab.id)}
+              onDownloadsClick={() => setShowDownloadsScreen(true)}
+              onStartDownload={handleStartDownload}
             />
           )}
 
@@ -209,6 +317,16 @@ export default function App() {
               onNewTab={handleNewTab}
               onCloseAll={handleCloseAllTabs}
               onDismiss={() => setShowTabSwitcher(false)}
+            />
+          )}
+
+          {/* Native-style Downloads Manager Screen */}
+          {showDownloadsScreen && (
+            <DownloadsScreen
+              onClose={() => setShowDownloadsScreen(false)}
+              downloads={downloads}
+              onCancelDownload={handleCancelDownload}
+              onDeleteDownload={handleDeleteDownload}
             />
           )}
         </div>

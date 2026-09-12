@@ -10,6 +10,7 @@ import {
   User,
   Sparkles,
   ExternalLink,
+  Download,
 } from 'lucide-react';
 import { ShortcutItem, DiscoverArticle } from '../types';
 
@@ -17,6 +18,8 @@ interface BrowserHomeScreenProps {
   tabCount: number;
   onNavigateToUrl: (url: string) => void;
   onTabsClick: () => void;
+  onDownloadsClick?: () => void;
+  activeDownloadsCount?: number;
 }
 
 const DEFAULT_SHORTCUTS: ShortcutItem[] = [
@@ -105,6 +108,8 @@ export const BrowserHomeScreen: React.FC<BrowserHomeScreenProps> = ({
   tabCount,
   onNavigateToUrl,
   onTabsClick,
+  onDownloadsClick,
+  activeDownloadsCount = 0,
 }) => {
   const [searchInput, setSearchInput] = useState<string>('');
   const [shortcuts, setShortcuts] = useState<ShortcutItem[]>(DEFAULT_SHORTCUTS);
@@ -154,12 +159,29 @@ export const BrowserHomeScreen: React.FC<BrowserHomeScreenProps> = ({
       <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full bg-blue-300/40 blur-3xl pointer-events-none" />
       <div className="absolute top-1/3 -right-24 w-80 h-80 rounded-full bg-cyan-200/50 blur-3xl pointer-events-none" />
 
-      {/* Top Status & Profile Bar */}
-      <div className="relative z-10 w-full px-5 pt-3 pb-2 flex items-center justify-between">
-        <span className="text-sm font-bold text-slate-800 tracking-tight">9:41</span>
-        <div className="flex items-center gap-2.5">
-          <span className="text-xs font-semibold text-slate-700">100%</span>
-          <div className="w-8 h-8 rounded-full bg-white/60 hover:bg-white/80 border border-white/80 backdrop-blur-md flex items-center justify-center text-blue-600 shadow-xs cursor-pointer">
+      {/* Top Clean Header Bar (Clean Brand Badge + Downloads & Profile) */}
+      <div className="relative z-10 w-full px-4 pt-3 pb-2 flex items-center justify-between">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/40 border border-white/60 backdrop-blur-md shadow-xs">
+          <span className="text-xs font-bold text-slate-800 tracking-tight">niooonu</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onDownloadsClick}
+            title="Downloads Manager"
+            className="relative w-8 h-8 rounded-full bg-white/60 hover:bg-white/80 border border-white/80 backdrop-blur-md flex items-center justify-center text-blue-700 shadow-xs cursor-pointer transition-all active:scale-95"
+          >
+            <Download className="w-4 h-4" />
+            {activeDownloadsCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
+                {activeDownloadsCount}
+              </span>
+            )}
+          </button>
+          <div
+            title="Google Account"
+            className="w-8 h-8 rounded-full bg-white/60 hover:bg-white/80 border border-white/80 backdrop-blur-md flex items-center justify-center text-blue-600 shadow-xs cursor-pointer"
+          >
             <User className="w-4 h-4" />
           </div>
         </div>

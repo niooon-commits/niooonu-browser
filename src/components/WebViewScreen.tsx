@@ -16,6 +16,7 @@ import {
   Grid,
   Tv,
   UserCheck,
+  Download,
 } from 'lucide-react';
 import { InBrowserTopBar } from './InBrowserTopBar';
 
@@ -27,6 +28,8 @@ interface WebViewScreenProps {
   onTabsClick: () => void;
   onNavigateToUrl: (url: string) => void;
   onCloseWebView: () => void;
+  onDownloadsClick?: () => void;
+  onStartDownload?: (url: string, filename?: string) => void;
 }
 
 export const WebViewScreen: React.FC<WebViewScreenProps> = ({
@@ -37,6 +40,8 @@ export const WebViewScreen: React.FC<WebViewScreenProps> = ({
   onTabsClick,
   onNavigateToUrl,
   onCloseWebView,
+  onDownloadsClick,
+  onStartDownload,
 }) => {
   const [loadingProgress, setLoadingProgress] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -415,6 +420,37 @@ export const WebViewScreen: React.FC<WebViewScreenProps> = ({
             >
               <Bookmark className="w-4 h-4 text-amber-400" />
               <span>Bookmark</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowMenu(false);
+                if (onStartDownload) {
+                  const filename = currentUrl.includes('niooonu')
+                    ? 'niooonu-browser-release.apk'
+                    : currentUrl.split('/').pop()?.split('?')[0] || 'page.html';
+                  onStartDownload(currentUrl, filename);
+                } else {
+                  showToast('Download started');
+                }
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 text-slate-200 cursor-pointer"
+            >
+              <Download className="w-4 h-4 text-blue-400" />
+              <span>Download File / Page</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowMenu(false);
+                if (onDownloadsClick) onDownloadsClick();
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 text-slate-200 cursor-pointer"
+            >
+              <Download className="w-4 h-4 text-cyan-400" />
+              <span>Downloads</span>
             </button>
 
             <button

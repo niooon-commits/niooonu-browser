@@ -27,35 +27,55 @@ import com.niooon.browser.ui.theme.TextPrimary
 @Composable
 fun TopStatusBar(
     onProfileClick: () -> Unit = {},
+    onDownloadsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: Time
-        Text(
-            text = "9:41",
-            color = TextPrimary,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        // Left: Clean Brand Accent
+        Box(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(Color(0x22FFFFFF))
+                .border(1.dp, Color(0x44FFFFFF), CircleShape)
+                .padding(horizontal = 10.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = "niooonu",
+                color = TextPrimary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
+            )
+        }
 
-        // Right side: Signal bars + Wifi + Battery Pill + User Profile
+        // Right side: Quick Actions (Downloads + Profile)
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Signal/Battery indicator
-            Text(
-                text = "100%",
-                color = TextPrimary,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
-            )
+            // Quick Downloads shortcut icon
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color(0x99FFFFFF))
+                    .border(1.dp, Color(0xB3FFFFFF), CircleShape)
+                    .clickable { onDownloadsClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_download),
+                    contentDescription = "Downloads",
+                    tint = Color(0xFF1976D2),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
 
             // Frosted Glass User Profile Circle
             Box(
@@ -71,7 +91,7 @@ fun TopStatusBar(
                     painter = painterResource(id = R.drawable.ic_account_circle),
                     contentDescription = "User Profile",
                     tint = Color(0xFF64B5F6),
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }
