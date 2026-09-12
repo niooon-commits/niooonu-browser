@@ -6,8 +6,10 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.os.Message
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
@@ -43,11 +45,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.niooon.browser.model.DomainBlockManager
 import com.niooon.browser.ui.components.BrowserPopupMenu
 import com.niooon.browser.ui.components.InBrowserTopBar
+import com.niooon.browser.ui.screens.DomainBlockScreen
+import com.niooon.browser.ui.screens.DownloadsScreen
 import com.niooon.browser.ui.theme.GoogleBlue
 import com.niooon.browser.ui.theme.TextPrimary
 import com.niooon.browser.ui.theme.TextSecondary
+import java.io.ByteArrayInputStream
 import java.net.URLEncoder
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -73,6 +79,8 @@ fun WebViewScreen(
     var showUrlEditDialog by remember { mutableStateOf(false) }
     var editableUrlText by remember { mutableStateOf(initialUrl) }
     var showMenuDialog by remember { mutableStateOf(false) }
+    var showDownloadsScreen by remember { mutableStateOf(false) }
+    var showDomainBlockScreen by remember { mutableStateOf(false) }
 
     // Update URL if initialUrl changes from external navigation
     LaunchedEffect(initialUrl) {
@@ -83,7 +91,11 @@ fun WebViewScreen(
     }
 
     BackHandler(enabled = true) {
-        if (webViewInstance?.canGoBack() == true) {
+        if (showDomainBlockScreen) {
+            showDomainBlockScreen = false
+        } else if (showDownloadsScreen) {
+            showDownloadsScreen = false
+        } else if (webViewInstance?.canGoBack() == true) {
             webViewInstance?.goBack()
         } else {
             onHomeClick()
@@ -100,6 +112,12 @@ fun WebViewScreen(
         } else {
             "https://www.google.com/search?q=" + URLEncoder.encode(trimmed, "UTF-8")
         }
+
+        if (DomainBlockManager.isBlocked(target)) {
+            Toast.makeText(context, "ডোমেইনটি ব্লক লিস্টে আছে: ${DomainBlockManager.extractDomain(target)}", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         currentUrl = target
         webViewInstance?.loadUrl(target)
     }
@@ -153,10 +171,52 @@ fun WebViewScreen(
                                 view: WebView?,
                                 request: WebResourceRequest?
                             ): Boolean {
+                                val reqUrl = request?.url?.toString() ?: return false
+                                if (DomainBlockManager.isBlocked(reqUrl)) {
+                                    // Blocked domain! Immediately stop WebView and cancel navigation
+                                    view?.stopLoading()
+                                    Toast.makeText(
+                                        context,
+                                        "ব্লকড লিংক ব্যাকগ্রাউন্ডে ক্যানসেল করা হয়েছে",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    return true
+                                }
                                 return false
                             }
 
+                            override fun shouldInterceptRequest(
+                                view: WebView?,
+                                request: WebResourceRequest?
+                            ): WebResourceResponse? {
+                                val reqUrl = request?.url?.toString()
+                                if (reqUrl != null && DomainBlockManager.isBlocked(reqUrl)) {
+                                    // Silently drop blocked ad scripts / iframes / trackers
+                                    return WebResourceResponse(
+                                        "text/plain",
+                                        "UTF-8",
+                                        ByteArrayInputStream(ByteArray(0))
+                                    )
+                                }
+                                return super.shouldInterceptRequest(view, request)
+                            }
+
                             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                                if (url != null && DomainBlockManager.isBlocked(url)) {
+                                    // Prevent black/blank screen: abort and go back immediately
+                                    view?.stopLoading()
+                                    if (view?.canGoBack() == true) {
+                                        view.goBack()
+                                    } else {
+                                        onHomeClick()
+                                    }
+                                    Toast.makeText(
+                                        context,
+                                        "ব্লকড পেজ ক্যানসেল করা হয়েছে",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    return
+                                }
                                 super.onPageStarted(view, url, favicon)
                                 isLoading = true
                                 url?.let { currentUrl = it }
@@ -181,6 +241,16 @@ fun WebViewScreen(
                             override fun onReceivedTitle(view: WebView?, title: String?) {
                                 super.onReceivedTitle(view, title)
                                 title?.let { currentTitle = it }
+                            }
+
+                            override fun onCreateWindow(
+                                view: WebView?,
+                                isDialog: Boolean,
+                                isUserGesture: Boolean,
+                                resultMsg: Message?
+                            ): Boolean {
+                                // Block annoying ad popups and new blank windows
+                                return false
                             }
                         }
 
@@ -286,8 +356,20 @@ fun WebViewScreen(
                 onSiteControls = {
                     Toast.makeText(context, "Site permissions and controls", Toast.LENGTH_SHORT).show()
                 },
+                onBlockDomain = {
+                    val domain = DomainBlockManager.blockDomain(currentUrl)
+                    Toast.makeText(context, "ডোমেইন ব্লক করা হয়েছে: $domain", Toast.LENGTH_SHORT).show()
+                    if (webViewInstance?.canGoBack() == true) {
+                        webViewInstance?.goBack()
+                    } else {
+                        onHomeClick()
+                    }
+                },
+                onDomainBlockList = {
+                    showDomainBlockScreen = true
+                },
                 onDownloadsList = {
-                    Toast.makeText(context, "Downloads manager", Toast.LENGTH_SHORT).show()
+                    showDownloadsScreen = true
                 },
                 onBookmarksList = {
                     Toast.makeText(context, "Bookmarks manager", Toast.LENGTH_SHORT).show()
@@ -326,6 +408,14 @@ fun WebViewScreen(
                     Toast.makeText(context, if (isDesktopSite) "Desktop site requested" else "Mobile site requested", Toast.LENGTH_SHORT).show()
                 }
             )
+        }
+
+        if (showDownloadsScreen) {
+            DownloadsScreen(onClose = { showDownloadsScreen = false })
+        }
+
+        if (showDomainBlockScreen) {
+            DomainBlockScreen(onClose = { showDomainBlockScreen = false })
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.niooon.browser.ui.screens
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -70,6 +71,16 @@ fun BrowserHomeScreen(
     var showMenuDialog by remember { mutableStateOf(false) }
     var showVoiceDialog by remember { mutableStateOf(false) }
     var showLensDialog by remember { mutableStateOf(false) }
+    var showDownloadsScreen by remember { mutableStateOf(false) }
+    var showDomainBlockScreen by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = showDownloadsScreen || showDomainBlockScreen) {
+        if (showDomainBlockScreen) {
+            showDomainBlockScreen = false
+        } else if (showDownloadsScreen) {
+            showDownloadsScreen = false
+        }
+    }
 
     fun executeSearch(rawQuery: String) {
         val trimmed = rawQuery.trim()
@@ -297,13 +308,18 @@ fun BrowserHomeScreen(
                             "Recent tabs",
                             "History",
                             "Downloads",
+                            "Domain block list",
                             "Desktop site",
                             "Settings"
                         ).forEach { item ->
                             TextButton(
                                 onClick = {
-                                    Toast.makeText(context, "$item selected", Toast.LENGTH_SHORT).show()
                                     showMenuDialog = false
+                                    when (item) {
+                                        "Downloads" -> showDownloadsScreen = true
+                                        "Domain block list" -> showDomainBlockScreen = true
+                                        else -> Toast.makeText(context, "$item selected", Toast.LENGTH_SHORT).show()
+                                    }
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -318,6 +334,14 @@ fun BrowserHomeScreen(
                     }
                 }
             )
+        }
+
+        if (showDownloadsScreen) {
+            DownloadsScreen(onClose = { showDownloadsScreen = false })
+        }
+
+        if (showDomainBlockScreen) {
+            DomainBlockScreen(onClose = { showDomainBlockScreen = false })
         }
     }
 }

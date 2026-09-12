@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AddBox
+import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DeleteOutline
@@ -42,6 +43,7 @@ import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.Translate
@@ -84,6 +86,8 @@ fun BrowserPopupMenu(
     onHistory: () -> Unit,
     onDeleteBrowsingData: () -> Unit,
     onSiteControls: () -> Unit,
+    onBlockDomain: () -> Unit = {},
+    onDomainBlockList: () -> Unit = {},
     onDownloadsList: () -> Unit,
     onBookmarksList: () -> Unit,
     onRecentTabs: () -> Unit,
@@ -273,6 +277,28 @@ fun BrowserPopupMenu(
                             title = "Site controls",
                             onClick = {
                                 onSiteControls()
+                                onDismiss()
+                            }
+                        )
+
+                        // Block domain (ডোমেইন ব্লক)
+                        BrowserMenuItem(
+                            icon = Icons.Rounded.Block,
+                            title = "Block domain",
+                            tint = Color(0xFFF87171),
+                            onClick = {
+                                onBlockDomain()
+                                onDismiss()
+                            }
+                        )
+
+                        // Domain block list (ডোমেইন ব্লক লিস্ট)
+                        BrowserMenuItem(
+                            icon = Icons.Rounded.Shield,
+                            title = "Domain block list",
+                            tint = Color(0xFF60A5FA),
+                            onClick = {
+                                onDomainBlockList()
                                 onDismiss()
                             }
                         )

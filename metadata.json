@@ -1,6 +1,6 @@
 {
   "name": "niooonu browser",
-  "description": "Native Android browser application with liquid glassmorphism UI, Material Symbols, shortcuts, and discover feed.",
+  "description": "Native Android browser application with liquid glassmorphism UI, Material Symbols, domain ad blocking to prevent black screens, downloads manager, and tabs navigation.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
