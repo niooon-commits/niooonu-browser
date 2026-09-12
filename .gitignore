@@ -22,6 +22,7 @@ android/.cxx/
 
 # Local skills and agent system docs containing secrets
 AGENTS.md
+GEMINI.md
 skills/
 
 

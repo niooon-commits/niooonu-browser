@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
+    "prebuild": "code-review-graph update",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "code-review-graph update && tsc --noEmit"
   },
   "dependencies": {
     "@expo/material-symbols": "^0.1.1",
