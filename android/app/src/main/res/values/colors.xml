@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="liquid_bg_start">#90CAF9</color>
+    <color name="liquid_bg_end">#E3F2FD</color>
+    <color name="glass_white_high">#E6FFFFFF</color>
+    <color name="glass_white_medium">#99FFFFFF</color>
+    <color name="glass_white_low">#4DFFFFFF</color>
+    <color name="glass_border">#80FFFFFF</color>
+    <color name="text_primary">#0F172A</color>
+    <color name="text_secondary">#475569</color>
+    <color name="google_blue">#4285F4</color>
+    <color name="google_red">#EA4335</color>
+    <color name="google_yellow">#FBBC05</color>
+    <color name="google_green">#34A853</color>
+</resources>
