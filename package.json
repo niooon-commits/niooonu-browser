@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "prebuild": "command -v code-review-graph >/dev/null 2>&1 && code-review-graph update || true",
+    "prebuild": "(command -v code-review-graph >/dev/null 2>&1 && code-review-graph update || true) && bash scripts/check-unpushed.sh",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "(command -v code-review-graph >/dev/null 2>&1 && code-review-graph update || true) && tsc --noEmit",
+    "lint": "(command -v code-review-graph >/dev/null 2>&1 && code-review-graph update || true) && bash scripts/check-unpushed.sh && tsc --noEmit",
     "sync": "bash scripts/sync-push-build.sh",
+    "auto-push": "bash scripts/sync-push-build.sh",
+    "check-unpushed": "bash scripts/check-unpushed.sh",
     "workflow": "bash scripts/check-workflow.sh",
     "wait-workflow": "bash scripts/wait-workflow.sh"
   },
